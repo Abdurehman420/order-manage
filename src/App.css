@@ -1,1 +1,46 @@
 @import "tailwindcss";
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  color: #000;
+  -webkit-print-color-adjust: exact;
+
+  line-height: 1.1;
+}
+.receipt {
+  width: 300px; /* ~58mm / 80mm receipts: change to 240/300 px as needed */
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 6px 10px;
+  box-sizing: border-box;
+}
+.center {
+  text-align: center;
+}
+.muted {
+  color: #000;
+  opacity: 1;
+  font-size: 11px;
+}
+.bold {
+  font-weight: 700;
+}
+
+.right {
+  text-align: right;
+}
+hr {
+  border: none;
+  border-top: 1px dashed #000;
+  margin: 8px 0;
+}
+@media print {
+  body {
+    margin: 0;
+  }
+  .receipt {
+    box-shadow: none;
+  }
+}

@@ -197,10 +197,16 @@ export default function RestaurantOrdersDashboard() {
     const shop = shopInfo || {};
     const total = order.items.reduce((s, it) => s + it.qty * it.price, 0);
     const lines = order.items
-      .map(
-        (it) =>
-          `<tr><td>${escapeHtml(it.name)}</td><td  >${it.qty}</td><td  >${(it.price * it.qty).toFixed(2)}</td></tr>`
-      )
+      .map((it) => {
+        const lineTotal = it.qty * it.price;
+        // const lineTotal = (it.qty * it.price).toFixed(2);
+        return `<tr style="font-size:13px">
+    <td style="padding:4px 6px;">${escapeHtml(it.name)}</td>
+    <td class="right" style="padding:2px 3px;">${it.qty}</td>
+    <td class="right" style="padding:2px 3px;">${it.price}</td>
+    <td class="right" style="padding:2px 3px;">${lineTotal}</td>
+  </tr>`;
+      })
       .join("");
     const deliverySection =
       order.type === "Delivery" && order.delivery
@@ -215,68 +221,120 @@ export default function RestaurantOrdersDashboard() {
     `
         : "";
 
+    const subtotal = order.items.reduce((s, it) => s + it.qty * it.price, 0);
+    const grandTotal = subtotal; // adjust if you add tax/fees later
+
     const html = `
-      <html>
-      <head>
-        <title>Receipt ${order.id}</title>
-        <style>
-          body{ font-family: Arial, Helvetica, sans-serif; padding:20px; color:#111 }
-          .center{text-align:center}
-          table{width:100%; border-collapse: collapse; margin-top:8px}
-          td, th{padding:6px}
-          .right{text-align:right}
-          .muted{color:#666; font-size:12px}
-          .bold{font-weight:700}
-          @media print{ body{margin:0} }
-        </style>
-      </head>
-      <body>
-        <div class="center">
-          <h2>${escapeHtml(shop.name || "")}</h2>
-          <div class="muted">${escapeHtml(shop.address || "")}</div>
-          <div class="muted">Phone: ${escapeHtml(shop.phone || "")}</div>
-          ${shop.taxNumber ? `<div class="muted">Tax: ${escapeHtml(shop.taxNumber)}</div>` : ""}
-        </div>
+<html>
+<head>
+ 
+  <meta charset="utf-8" />
+  <style>
+    html,body{margin:0;padding:0;color:#000;-webkit-print-color-adjust:exact;font-family: 'Courier New', monospace;font-size:12px;line-height:1.1;}
+    .receipt{width:300px;max-width:100%;margin:0 auto;padding:8px 10px;box-sizing:border-box;}
+    .center{text-align:center;}
+    .muted{color:#000;opacity:0.9;font-size:11px;}
+    .bold{font-weight:700;}
+    table{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed;}
+    colgroup col:first-child{width:57%;}
+    colgroup col:nth-child(2){width:13%;}
+    colgroup col:nth-child(3){width:15%;}
+    colgroup col:nth-child(4){width:15%;}
+    th,td{padding:4px 6px;vertical-align:top;word-wrap:break-word;}
+    th{font-weight:700;font-size:12px;}
+    .right{text-align:right;}
+    hr{border:none;border-top:1px dashed #000;margin:8px 0;}
+    .spacer{height:8px;}
+    @media print{body{margin:0}.receipt{box-shadow:none}}
+  </style>
+</head>
+<body>
+  <div class="receipt">
+    <div class="center">
+      <div class="bold" style="font-size:14px;margin-bottom:2px;">Order Confirmation</div>
+      <div class="bold" style="font-size:13px;margin-bottom:6px;">Payment Receipt</div>
+      ${
+        shop.logo
+          ? `<img src="${shop.logo}" alt="logo" style="max-width:140px;height:auto;display:block;margin:0 auto 8px;" />`
+          : ""
+      }
+      <div  style="text-align:left; margin-top:4px">
+         <div class=" ">Add: ${escapeHtml(shop.address || "")}</div>
+      <div class=" ">Phone: ${escapeHtml(shop.phone || "")}</div>
+      </div>
+   
+    </div>
 
-        <hr />
-        <div style="display:flex; justify-content:space-between">
-          <div>
-            <div><strong>Order:</strong> ${escapeHtml(order.id)}</div>
-            <div class="muted">${escapeHtml(order.customer || "")}</div>
-            <div class="muted">Type: ${escapeHtml(order.type)}</div>
-          </div>
-          <div class="muted right">${format(new Date(order.createdAt), "PPpp")}</div>
-        </div>
+    <div class="spacer"></div>
 
-        <table>
-         <colgroup>
-    <col style="width:65%">
-    <col style="width:15%">
-    <col style="width:20%">
-  </colgroup>
-          <thead  style="border-bottom:1px solid #ddd">
-            <tr  style="font-weight:700 ; font-size:18px"><td class="  text-left !font-bold ">Item</td><td class=" !font-bold text-left"  >Qty</td><td class=" !font-bold text-left">Price</td></tr>
-          </thead>
-          <tbody>
-         
-           ${lines}
-          
-           
-          </tbody>
-        </table>
+    <div style="font-size:12px;">
+      <div>Date: ${escapeHtml(format(new Date(order.createdAt), "PPpp"))}</div>
+    </div>
 
-        <div style="margin-top:10px; display:flex; justify-content:space-between; font-weight:700">
-          <div class="muted">Items: ${order.items.length}</div>
-          <div>Total: ${total.toFixed(2)}</div>
-        </div>
+    <div class="spacer"></div>
 
-        ${deliverySection}
+    <div style="font-size:12px;">
+      <div><strong>Order:</strong> ${escapeHtml(order.id)}</div>
+      <div><strong>Order Type:</strong> ${escapeHtml(order.type || "")}</div>
+      <div><strong>Payment Type:</strong> ${escapeHtml(order.paymentType || order.payment || "CASH")}</div>
+      ${
+        order.type === "Delivery" && order.delivery?.address
+          ? `<div><strong>Address:</strong> ${escapeHtml(order.delivery.address)}</div>`
+          : ""
+      }
+      ${
+        order.delivery
+          ? `<div><strong>Customer:</strong> ${escapeHtml(order.delivery.name || order.customer || "")} ${
+              order.delivery.phone ? " • " + escapeHtml(order.delivery.phone) : ""
+            }</div>`
+          : `<div><strong>Customer:</strong> ${escapeHtml(order.customer || "")}</div>`
+      }
+      <div><strong>Cashier:</strong> ${escapeHtml(shop.name || "")}</div>
+    </div>
 
-        <hr />
-        <div class="muted" style="font-size:12px; margin-top:8px">Thank you for your order!</div>
-      </body>
-      </html>
-    `;
+    <div class="spacer"></div>
+
+    <hr />
+
+    <table>
+      <colgroup>
+        <col style="width:52%">
+        <col style="width:12%">
+        <col style="width:18%">
+        <col style="width:18%">
+      </colgroup>
+      <thead>
+        <tr>
+          <th style="text-align:left">Description</th>
+          <th class="right">QTY</th>
+          <th class="right">Price</th>
+          <th class="right">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${lines}
+      </tbody>
+    </table>
+
+    <hr />
+
+    <div style="display:flex;justify-content:space-between;font-weight:700;margin-top:6px;">
+      <div class="muted">Subtotal</div>
+      <div class="right">${subtotal.toFixed(2)}</div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;font-weight:900;margin-top:6px;">
+      <div class="bold">Total (PKR)</div>
+      <div class="right bold">${grandTotal.toFixed(2)}</div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="center muted" style="font-size:12px;margin-top:6px;">Thank you for visiting!</div>
+  </div>
+</body>
+</html>
+`;
 
     const w = window.open("", "_blank", "width=500,height=700");
     if (!w) {
@@ -1027,6 +1085,28 @@ function ShopModal({ shopInfo, onClose, onSave }) {
         </div>
         <div className="mt-4 space-y-2">
           <input
+            type="file"
+            accept="image/*"
+            onChange={async (e) => {
+              const file = e.target.files && e.target.files[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => {
+                setDraft((d) => ({ ...d, logo: reader.result })); // reader.result is dataURL
+              };
+              reader.readAsDataURL(file);
+            }}
+          />
+
+          {draft.logo && (
+            <div style={{ marginTop: 8 }}>
+              <img src={draft.logo} alt="logo" style={{ maxWidth: 140, height: "auto", display: "block" }} />
+              <button type="button" onClick={() => setDraft((d) => ({ ...d, logo: null }))} className="text-sm mt-1">
+                Remove
+              </button>
+            </div>
+          )}
+          <input
             value={draft.name}
             onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
             className="w-full p-2 border rounded"
@@ -1064,23 +1144,23 @@ function ShopModal({ shopInfo, onClose, onSave }) {
   );
 }
 
-// ---------- Helpers ----------
-function createRandomOrder(menu) {
-  const count = Math.ceil(Math.random() * 3);
-  const items = Array.from({ length: count }).map(() => {
-    const item = menu[Math.floor(Math.random() * menu.length)];
-    return { ...item, qty: Math.ceil(Math.random() * 3) };
-  });
-  return {
-    id: uid(),
-    customer: `Guest ${Math.floor(Math.random() * 1000)}`,
-    type: Math.random() > 0.6 ? "Delivery" : Math.random() > 0.5 ? "Takeaway" : "Dine-in",
-    items,
-    status: "Pending",
-    assigned: "Unassigned",
-    createdAt: now(),
-  };
-}
+// // ---------- Helpers ----------
+// function createRandomOrder(menu) {
+//   const count = Math.ceil(Math.random() * 3);
+//   const items = Array.from({ length: count }).map(() => {
+//     const item = menu[Math.floor(Math.random() * menu.length)];
+//     return { ...item, qty: Math.ceil(Math.random() * 3) };
+//   });
+//   return {
+//     id: uid(),
+//     customer: `Guest ${Math.floor(Math.random() * 1000)}`,
+//     type: Math.random() > 0.6 ? "Delivery" : Math.random() > 0.5 ? "Takeaway" : "Dine-in",
+//     items,
+//     status: "Pending",
+//     assigned: "Unassigned",
+//     createdAt: now(),
+//   };
+// }
 
 function escapeHtml(unsafe) {
   if (!unsafe && unsafe !== 0) return "";
