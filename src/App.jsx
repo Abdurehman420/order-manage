@@ -55,6 +55,39 @@ export default function RestaurantOrdersDashboard() {
     }
   });
 
+  // --- Completed orders state (persisted) ---
+  const [completedOrders, setCompletedOrders] = useState(() => {
+    try {
+      const raw = localStorage.getItem("completed_orders_v1");
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("completed_orders_v1", JSON.stringify(completedOrders));
+  }, [completedOrders]);
+
+  function addCompleted(order) {
+    // avoid duplicates
+    setCompletedOrders((prev) => {
+      if (prev.some((o) => o.id === order.id)) return prev;
+      const record = { ...order, completedAt: new Date().toISOString() };
+      return [record, ...prev];
+    });
+  }
+
+  function removeCompleted(id) {
+    setCompletedOrders((prev) => prev.filter((o) => o.id !== id));
+  }
+
+  function clearCompleted() {
+    // optional confirmation
+    if (!window.confirm("Clear all completed orders?")) return;
+    setCompletedOrders([]);
+  }
+
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState("All");
@@ -90,9 +123,18 @@ export default function RestaurantOrdersDashboard() {
   const upsertOrder = (order) => {
     setOrders((s) => {
       const idx = s.findIndex((o) => o.id === order.id);
-      if (idx === -1) return [order, ...s];
+      if (idx === -1) {
+        // new order
+        if (order.status === "Delivered") addCompleted(order);
+        return [order, ...s];
+      }
       const copy = [...s];
+      const prev = copy[idx];
       copy[idx] = order;
+      // if status changed to Delivered, record it
+      if (prev?.status !== order.status && order.status === "Delivered") {
+        addCompleted(order);
+      }
       return copy;
     });
     notify(`Order ${order.id} saved`);
@@ -396,7 +438,18 @@ export default function RestaurantOrdersDashboard() {
             <OrdersTable
               orders={pageItems}
               onView={(o) => setSelectedOrder(o)}
-              onUpdate={(id, patch) => setOrders((s) => s.map((o) => (o.id === id ? { ...o, ...patch } : o)))}
+              onUpdate={(id, patch) => {
+                setOrders((prev) => {
+                  const before = prev.find((o) => o.id === id);
+                  const next = prev.map((o) => (o.id === id ? { ...o, ...patch } : o));
+                  const after = next.find((o) => o.id === id);
+                  if (before && after && before.status !== after.status && after.status === "Delivered") {
+                    // record completed order
+                    addCompleted(after);
+                  }
+                  return next;
+                });
+              }}
               onDelete={(id) => deleteOrder(id)}
               onPrint={(o) => printOrder(o)}
             />
@@ -425,21 +478,11 @@ export default function RestaurantOrdersDashboard() {
           </div>
 
           <aside className="bg-white rounded-2xl shadow p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Live Analytics</h3>
-              <div className="text-sm text-slate-500">Last 8 hours</div>
-            </div>
-            <div style={{ height: 220 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={analytics}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="label" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke="#8884d8" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            <CompletedOrdersList
+              completed={completedOrders}
+              onDelete={(id) => removeCompleted(id)}
+              onClear={() => clearCompleted()}
+            />
 
             <div className="mt-4">
               <h4 className="text-sm font-medium">Quick stats</h4>
@@ -1141,6 +1184,38 @@ function ShopModal({ shopInfo, onClose, onSave }) {
         </div>
       </motion.div>
     </motion.div>
+  );
+}
+
+function CompletedOrdersList({ completed, onDelete, onClear }) {
+  return (
+    <div className="mt-4 border-t pt-3">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-medium">Completed ({completed.length})</h4>
+        <button onClick={onClear} className="text-xs text-red-600">
+          Clear
+        </button>
+      </div>
+
+      <ul className="mt-2 text-sm text-slate-600 max-h-40 overflow-auto space-y-2">
+        {completed.length === 0 && <li className="py-2 text-xs text-slate-500">No completed orders</li>}
+
+        {completed.map((c) => (
+          <li key={c.id} className="flex items-center justify-between border rounded p-2">
+            <div>
+              <div className="font-medium">{c.customer || "Guest"}</div>
+              <div className="text-xs text-slate-500">{c.items.map((it) => `${it.name} x${it.qty}`).join(", ")}</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="text-slate-500 text-xs">{format(new Date(c.completedAt), "PPp")}</div>
+              <button onClick={() => onDelete(c.id)} className="px-2 py-1 border rounded text-xs text-red-600">
+                Delete
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
