@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { formatDistanceToNow, format } from "date-fns";
+import React from "react";
 import {
   BellIcon,
   PlusIcon,
@@ -86,6 +87,16 @@ export default function RestaurantOrdersDashboard() {
     // optional confirmation
     if (!window.confirm("Clear all completed orders?")) return;
     setCompletedOrders([]);
+  }
+
+  function getDayKey(timestamp) {
+    // returns YYYY-MM-DD string for grouping
+    return format(new Date(timestamp), "yyyy-MM-dd");
+  }
+
+  function removeCompletedDay(dayKey) {
+    // remove all completed orders whose completedAt falls on dayKey
+    setCompletedOrders((prev) => prev.filter((o) => getDayKey(o.completedAt) !== dayKey));
   }
 
   const [query, setQuery] = useState("");
@@ -327,13 +338,15 @@ export default function RestaurantOrdersDashboard() {
 <body>
   <div class="receipt">
     <div class="center">
-      <div class="bold" style="font-size:14px;margin-bottom:2px;">Order Confirmation</div>
-      <div class="bold" style="font-size:13px;margin-bottom:6px;">Payment Receipt</div>
+      
       ${
         shop.logo
           ? `<img src="${shop.logo}" alt="logo" style="max-width:140px;height:auto;display:block;margin:0 auto 8px;" />`
           : ""
       }
+      <div class="bold" style="font-size:20px;margin-bottom:2px; font-weight: 700;">F . H PIZZA BURGER SAUCE</div>
+      <div class="bold" style="font-size:14px;margin-bottom:2px;">Order Confirmation</div>
+      <div class="bold" style="font-size:13px;margin-bottom:6px;">Payment Receipt</div>
       <div  style="text-align:left; margin-top:4px">
          <div class=" "><strong>Add:</strong> ${escapeHtml(shop.address || "")}</div>
       <div class=" "><strong>Phone:</strong> ${escapeHtml(shop.phone || "")}</div>
@@ -515,6 +528,7 @@ export default function RestaurantOrdersDashboard() {
             <CompletedOrdersList
               completed={completedOrders}
               onDelete={(id) => removeCompleted(id)}
+              onDeleteDay={(dayKey) => removeCompletedDay(dayKey)}
               onClear={() => clearCompleted()}
             />
 
@@ -1221,34 +1235,98 @@ function ShopModal({ shopInfo, onClose, onSave }) {
   );
 }
 
-function CompletedOrdersList({ completed, onDelete, onClear }) {
+function CompletedOrdersList({ completed, onDelete, onDeleteDay, onClear }) {
+  // grouped: [{ day: '2025-09-23', items: [...] }, ...] sorted newest-first
+  const grouped = React.useMemo(() => {
+    const map = {};
+    completed.forEach((o) => {
+      const day = format(new Date(o.completedAt), "yyyy-MM-dd");
+      if (!map[day]) map[day] = [];
+      map[day].push(o);
+    });
+    const days = Object.keys(map).sort((a, b) => b.localeCompare(a)); // newest first
+    return days.map((d) => ({ day: d, items: map[d] }));
+  }, [completed]);
+
+  const currency = (n) => Number(n).toFixed(2);
+
   return (
     <div className="mt-4 border-t pt-3">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium">Completed ({completed.length})</h4>
-        <button onClick={onClear} className="text-xs text-red-600">
-          Clear
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={onClear} className="text-xs text-red-600">
+            Clear all
+          </button>
+        </div>
       </div>
 
-      <ul className="mt-2 text-sm text-slate-600 max-h-40 overflow-auto space-y-2">
-        {completed.length === 0 && <li className="py-2 text-xs text-slate-500">No completed orders</li>}
+      <div className="mt-2 text-sm text-slate-600 space-y-4 max-h-72 overflow-auto">
+        {grouped.length === 0 && <div className="py-2 text-xs text-slate-500">No completed orders</div>}
 
-        {completed.map((c) => (
-          <li key={c.id} className="flex items-center justify-between border rounded p-2">
-            <div>
-              <div className="font-medium">{c.customer || "Guest"}</div>
-              <div className="text-xs text-slate-500">{c.items.map((it) => `${it.name} x${it.qty}`).join(", ")}</div>
+        {grouped.map(({ day, items }) => {
+          // dayTotal: sum of all items totals in that day
+          const dayTotal = items.reduce((s, o) => {
+            return s + (o.items ? o.items.reduce((ss, it) => ss + it.qty * it.price, 0) : 0);
+          }, 0);
+
+          return (
+            <div key={day} className="border rounded p-2 bg-slate-50">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <div className="font-medium">{format(new Date(day), "PPP")}</div>
+                  <div className="text-xs text-slate-500">{items.length} order(s)</div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="font-semibold">{currency(dayTotal)}</div>
+                  <button
+                    onClick={() => {
+                      if (
+                        !window.confirm(
+                          `Delete ${items.length} completed order(s) from ${format(new Date(day), "PPP")}?`
+                        )
+                      )
+                        return;
+                      onDeleteDay(day);
+                    }}
+                    className="px-2 py-1 text-xs border rounded text-red-600"
+                    title="Delete all completed orders for this day"
+                  >
+                    Delete day
+                  </button>
+                </div>
+              </div>
+
+              <ul className="space-y-2">
+                {items.map((c) => {
+                  const orderTotal = (c.items || []).reduce((s, it) => s + it.qty * it.price, 0);
+                  return (
+                    <li key={c.id} className="flex items-start justify-between">
+                      <div>
+                        <div className="font-medium">{c.customer || "Guest"}</div>
+                        <div className="text-xs text-slate-500">
+                          {(c.items || []).map((it) => `${it.name} x${it.qty}`).join(", ")}
+                        </div>
+                        <div className="text-xs text-slate-400">{format(new Date(c.completedAt), "p")}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-medium">{currency(orderTotal)}</div>
+                        <button
+                          onClick={() => onDelete(c.id)}
+                          className="px-2 py-1 text-xs border rounded text-red-600"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="text-slate-500 text-xs">{format(new Date(c.completedAt), "PPp")}</div>
-              <button onClick={() => onDelete(c.id)} className="px-2 py-1 border rounded text-xs text-red-600">
-                Delete
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1270,6 +1348,8 @@ function CompletedOrdersList({ completed, onDelete, onClear }) {
 //     createdAt: now(),
 //   };
 // }
+
+// --- helpers for grouping / deleting by day ---
 
 function escapeHtml(unsafe) {
   if (!unsafe && unsafe !== 0) return "";
