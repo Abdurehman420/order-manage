@@ -345,7 +345,6 @@ export default function RestaurantOrdersDashboard() {
           : ""
       }
       <div class="bold" style="font-size:20px;margin-bottom:2px; font-weight: 700;">F . H PIZZA BURGER SAUCE</div>
-      <div class="bold" style="font-size:14px;margin-bottom:2px;">Order Confirmation</div>
       <div class="bold" style="font-size:13px;margin-bottom:6px;">Payment Receipt</div>
       <div  style="text-align:left; margin-top:4px">
          <div class=" "><strong>Add:</strong> ${escapeHtml(shop.address || "")}</div>
@@ -378,7 +377,7 @@ export default function RestaurantOrdersDashboard() {
             }</div>`
           : `<div><strong>Customer:</strong> ${escapeHtml(order.customer || "")}</div>`
       }
-      <div><strong>Cashier:</strong> ${escapeHtml(shop.name || "")}</div>
+     
     </div>
 
     <div class="spacer"></div>
@@ -419,7 +418,7 @@ export default function RestaurantOrdersDashboard() {
 
     <div class="spacer"></div>
 
-    <div class="center muted" style="font-size:12px;margin-top:6px;">Thank you for visiting!</div>
+    <div class="center muted" style="font-size:12px;margin-top:6px;">Thanks for ordering!</div>
   </div>
 </body>
 </html>

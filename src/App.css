@@ -44,3 +44,4 @@ hr {
     box-shadow: none;
   }
 }
+/* <div><strong>Cashier:</strong> ${escapeHtml(shop.name || "")}</div> */
