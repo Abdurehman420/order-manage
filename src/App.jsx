@@ -272,22 +272,54 @@ export default function RestaurantOrdersDashboard() {
  
   <meta charset="utf-8" />
   <style>
-    html,body{margin:0;padding:0;color:#000;-webkit-print-color-adjust:exact;font-family: 'Courier New', monospace;font-size:12px;line-height:1.1;}
-    .receipt{width:300px;max-width:100%;margin:0 auto;padding:8px 10px;box-sizing:border-box;}
-    .center{text-align:center;}
-    .muted{color:#000;opacity:0.9;font-size:11px;}
-    .bold{font-weight:700;}
-    table{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed;}
-    colgroup col:first-child{width:57%;}
-    colgroup col:nth-child(2){width:13%;}
-    colgroup col:nth-child(3){width:15%;}
-    colgroup col:nth-child(4){width:15%;}
-    th,td{padding:4px 6px;vertical-align:top;word-wrap:break-word;}
-    th{font-weight:700;font-size:12px;}
-    .right{text-align:right;}
-    hr{border:none;border-top:1px dashed #000;margin:8px 0;}
-    .spacer{height:8px;}
-    @media print{body{margin:0}.receipt{box-shadow:none}}
+      @page { size: auto; margin: 0mm; } /* allow printer to choose length */
+  html, body {
+    margin: 0;
+    padding: 0;
+    color: #000;
+    -webkit-print-color-adjust: exact;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.1;
+    height: auto !important;
+  }
+
+    .receipt {
+    width: 300px;        /* change to 240px / 380px if your printer needs it */
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 8px 10px;
+    box-sizing: border-box;
+    display: block;
+    height: auto;
+    filter: none;
+  }
+
+  /* Visual styles */
+  .center { text-align: center; }
+  .muted { color: #000; opacity: 0.92; font-size: 11px; }
+  .bold { font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; table-layout: fixed; }
+  colgroup col:first-child { width: 57%; }
+  colgroup col:nth-child(2) { width: 13%; }
+  colgroup col:nth-child(3) { width: 15%; }
+  colgroup col:nth-child(4) { width: 15%; }
+  th, td { padding: 4px 6px; vertical-align: top; word-wrap: break-word; }
+  th { font-weight: 700; font-size: 12px; }
+  .right { text-align: right; }
+  hr { border: none; border-top: 1px dashed #000; margin: 8px 0; }
+
+  /* Printing behaviour: avoid breaking rows across pages */
+  table { page-break-inside: auto; }
+  tr    { page-break-inside: avoid; page-break-after: auto; }
+  thead { display: table-header-group; } /* keep header on each printed page */
+  tfoot { display: table-footer-group; }
+
+  /* Small print-specific tweaks */
+  @media print {
+    body { margin: 0; }
+    .receipt { box-shadow: none; }
+  }
   </style>
 </head>
 <body>
@@ -301,8 +333,8 @@ export default function RestaurantOrdersDashboard() {
           : ""
       }
       <div  style="text-align:left; margin-top:4px">
-         <div class=" ">Add: ${escapeHtml(shop.address || "")}</div>
-      <div class=" ">Phone: ${escapeHtml(shop.phone || "")}</div>
+         <div class=" "><strong>Add:</strong> ${escapeHtml(shop.address || "")}</div>
+      <div class=" "><strong>Phone:</strong> ${escapeHtml(shop.phone || "")}</div>
       </div>
    
     </div>
@@ -310,7 +342,7 @@ export default function RestaurantOrdersDashboard() {
     <div class="spacer"></div>
 
     <div style="font-size:12px;">
-      <div>Date: ${escapeHtml(format(new Date(order.createdAt), "PPpp"))}</div>
+      <div><strong>Date:</strong> ${escapeHtml(format(new Date(order.createdAt), "PPpp"))}</div>
     </div>
 
     <div class="spacer"></div>
