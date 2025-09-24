@@ -278,7 +278,7 @@ export default function RestaurantOrdersDashboard() {
     padding: 0;
     color: #000;
     -webkit-print-color-adjust: exact;
-    font-family: 'Courier New', monospace;
+    
     font-size: 12px;
     line-height: 1.1;
     height: auto !important;
@@ -297,7 +297,7 @@ export default function RestaurantOrdersDashboard() {
 
   /* Visual styles */
   .center { text-align: center; }
-  .muted { color: #000; opacity: 0.92; font-size: 11px; }
+  .muted { color: #000; opacity: 1; font-size: 11px; }
   .bold { font-weight: 700; }
   table { width: 100%; border-collapse: collapse; margin-top: 8px; table-layout: fixed; }
   colgroup col:first-child { width: 57%; }
@@ -314,7 +314,9 @@ export default function RestaurantOrdersDashboard() {
   tr    { page-break-inside: avoid; page-break-after: auto; }
   thead { display: table-header-group; } /* keep header on each printed page */
   tfoot { display: table-footer-group; }
-
+      strong{
+        font-size: 13px;
+      }
   /* Small print-specific tweaks */
   @media print {
     body { margin: 0; }
